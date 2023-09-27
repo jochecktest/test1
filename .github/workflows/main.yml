@@ -1,0 +1,43 @@
+name: Checkmarx AST Scan
+on:
+   pull_request:
+     branches:
+       - main
+       - dev
+       - test
+
+jobs:
+   AST_Scan:
+      permissions:
+          contents: read # for actions/checkout to fetch code
+          security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+          actions: read # only required for a private repository by github/codeql-action/upload-sarif #
+      runs-on: ubuntu-latest
+      steps:
+           - name: Checkout repository
+             uses: actions/checkout@v3.5.2
+           # You may pin to the exact commit or the version.
+           # uses: Checkmarx/ast-github-action@3bbaca0807ff5abd587965391138479c23b7b369
+           - name: AST Scan
+             uses: Checkmarx/ast-github-action@2.0.18
+             with:
+               # Provide the AST portal URL
+               base_uri: https://anz.ast.checkmarx.net/
+               # Provide the Tenant for AST portal URL
+               cx_tenant: ${{ secrets.CX_TENANT}}
+               # Client ID for AST portal authentication
+               cx_client_id: ${{ secrets.CX_CLIENTID}}
+               # Secret key for AST portal authentication
+               cx_client_secret: ${{ secrets.CX_CLIENT_SECRET}}
+               additional_params: --report-format sarif --output-path .
+           
+           - name: Upload Sarif Report to Workflow
+             uses: actions/upload-artifact@v3
+             with:
+              name: cx_result
+              path: cx_result.sarif #/home/runner/work/**/*.sarif
+              
+           - name: Upload SARIF file
+             uses: github/codeql-action/upload-sarif@v2
+             with:
+               sarif_file: cx_result.sarif
